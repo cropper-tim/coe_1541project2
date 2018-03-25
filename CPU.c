@@ -159,7 +159,8 @@ int main(int argc, char **argv){
 
 		} 
 		
-		
+		//read from instruction cache
+		cycle_number += cache_access(I_cache, IF1->Addr, 0);
 
 		//data hazard 
 		//check for hazard 2)a)
