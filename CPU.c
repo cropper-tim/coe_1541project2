@@ -1,13 +1,11 @@
-/**************************************************************/
-//http://codr.io/1k8d0s6
-/* CS/COE 1541				 			
-   just compile with gcc -o CPU CPU.c			
-   and execute using							
-   ./CPU  /afs/cs.pitt.edu/courses/1541/short_traces/sample.tr	0  
-   
-   Will Taylor
-   Eric Vitunac
-   Tim Cropper
+/**************************************************************
+	CS/COE 1541				 			
+	just compile with gcc -o CPU CPU.c			
+	and execute using							
+
+	Will Taylor
+	Eric Vitunac
+	Tim Cropper
 ***************************************************************/
 
 //data hazard for mem2 - seg fault
@@ -43,50 +41,50 @@ struct prediction{
 struct prediction pt[prediction_table_size]; 
 
 
-int main(int argc, char **argv)
-{
-  size_t size;
-  char *trace_file_name;
-  int trace_view_on = 0;
-  int prediction_method = 0;
-  unsigned char branch_IF1 = 0;
-  unsigned char branch_IF2 = 0;
-  unsigned char branch_ID = 0;
-  unsigned char branch_EX = 0;
-  unsigned char t_type = 0;
-  unsigned char t_sReg_a= 0;
-  unsigned char t_sReg_b= 0;
-  unsigned char t_dReg= 0;
-  unsigned int t_PC = 0;
-  unsigned int t_Addr = 0;
-  unsigned int cycle_number = 0;
+int main(int argc, char **argv){
+	
+	size_t size;
+	char *trace_file_name;
+	int trace_view_on = 0;
+	int prediction_method = 0;
+	unsigned char branch_IF1 = 0;
+	unsigned char branch_IF2 = 0;
+	unsigned char branch_ID = 0;
+	unsigned char branch_EX = 0;
+	unsigned char t_type = 0;
+	unsigned char t_sReg_a= 0;
+	unsigned char t_sReg_b= 0;
+	unsigned char t_dReg= 0;
+	unsigned int t_PC = 0;
+	unsigned int t_Addr = 0;
+	unsigned int cycle_number = 0;
 
-  if (argc == 1) {
-    fprintf(stdout, "\nUSAGE: tv <trace_file> <switch - any character>\n");
-    fprintf(stdout, "\n(switch) to turn on or off individual item view.\n\n");
-    exit(0);
-  }
+	if (argc == 1) {
+	fprintf(stdout, "\nUSAGE: tv <trace_file> <switch - any character>\n");
+	fprintf(stdout, "\n(switch) to turn on or off individual item view.\n\n");
+	exit(0);
+	}
     
-  trace_file_name = argv[1];
-  if (argc == 4){
-      //
-  	prediction_method = atoi(argv[2]); //if 0, branches predicted as not taken       
-                                    //if 1, assume that the architecture uses a one-bit branch predictor which records the last branch condition and address. 
-                                          //if 2, assume that the architecture uses a 2 bit branch predictor
-  
-  	trace_view_on = atoi(argv[3]);
-  }
-  
+	trace_file_name = argv[1];
+	if (argc == 4){
+	//
+	prediction_method = atoi(argv[2]); //if 0, branches predicted as not taken       
+				    //if 1, assume that the architecture uses a one-bit branch predictor which records the last branch condition and address. 
+					  //if 2, assume that the architecture uses a 2 bit branch predictor
+
+	trace_view_on = atoi(argv[3]);
+	}
+
 	//to hold cache ID variables
-  unsigned int I_Size = 0;
-  unsigned int I_Associativity = 0;
-  unsigned int D_Size = 0;
-  unsigned int D_Associativity = 0;
-  unsigned int L2_Size = 0;
-  unsigned int L2_Associativity = 0;
-  unsigned int Cache_Block_size = 0;
-  unsigned int L2_Access_Time = 0;
-  unsigned int Mem_Access_Time = 0;
+	unsigned int I_Size = 0;
+	unsigned int I_Associativity = 0;
+	unsigned int D_Size = 0;
+	unsigned int D_Associativity = 0;
+	unsigned int L2_Size = 0;
+	unsigned int L2_Associativity = 0;
+	unsigned int Cache_Block_size = 0;
+	unsigned int L2_Access_Time = 0;
+	unsigned int Mem_Access_Time = 0;
 	
 	// to keep cache statistics
 	unsigned int I_accesses = 0;
@@ -96,75 +94,69 @@ int main(int argc, char **argv)
 	unsigned int D_write_accesses = 0; 
 	unsigned int D_write_misses = 0;
 	
-  FILE* file = fopen ("cache_config.txt", "r");
-  while (!feof (file))
-    {  
-      fscanf (file, "%d", &I_Size);      
-      fscanf (file, "%d", &I_Associativity);      
-      fscanf (file, "%d", &D_Size);      
-      fscanf (file, "%d", &D_Associativity);      
-      fscanf (file, "%d", &L2_Size);      
-      fscanf (file, "%d", &L2_Associativity);      
-      fscanf (file, "%d", &Cache_Block_size);      
-      fscanf (file, "%d", &L2_Access_Time);      
-      fscanf (file, "%d", &Mem_Access_Time);      
-    }
-  fclose (file);
+	FILE* config_file = fopen ("cache_config.txt", "r");
+	if (!config_file) {
+		fprintf(stdout, "\n cache_config.txt not found.\n\n");
+		exit(0);
+	}
 	
-	if (I_Size == 0){
-		//perfect cache, miss penalty = 0;
+	while (!feof (config_file))
+	{  
+	fscanf (file, "%d", &I_Size);      
+	fscanf (file, "%d", &I_Associativity);      
+	fscanf (file, "%d", &D_Size);      
+	fscanf (file, "%d", &D_Associativity);      
+	fscanf (file, "%d", &L2_Size);      
+	fscanf (file, "%d", &L2_Associativity);      
+	fscanf (file, "%d", &Cache_Block_size);      
+	fscanf (file, "%d", &L2_Access_Time);      
+	fscanf (file, "%d", &Mem_Access_Time);      
 	}
-	if (D_Size == 0){
-		//perfect cache, miss penalty = 0;
-	}
-  
+	fclose (config_file);
+	
+	if (I_Size == 0){/*perfect cache, miss penalty = 0;*/}
+	if (D_Size == 0){/*perfect cache, miss penalty = 0;*/}
+	  
 	if(l2_Size != 0){
 	  struct cache_t *L2_Cache;
 		L2_cache = cache_create(L2_Size, Cache_Block_Size, L2_Associativity, Mem_Access_Time);
 	}else{
 		L2_Access_Time = Mem_Access_Time;
 	}
-  struct cache_t *I_cache, *D_cache;
-  I_cache = cache_create(I_Size, Cache_Block_Size, I_Associativity, L2_Access_Time);
-  D_cache = cache_create(D_Size, Cache_Block_Size, D_Associativity, L2_Access_Time);
-  
-  
-  
-  
-  fprintf(stdout, "\n ** opening file %s\n", trace_file_name);
+	struct cache_t *I_cache, *D_cache;
+	I_cache = cache_create(I_Size, Cache_Block_Size, I_Associativity, L2_Access_Time);
+	D_cache = cache_create(D_Size, Cache_Block_Size, D_Associativity, L2_Access_Time);
 
-  trace_fd = fopen(trace_file_name, "rb");
+  	fprintf(stdout, "\n ** opening file %s\n", trace_file_name);
 
-  if (!trace_fd) {
-    fprintf(stdout, "\ntrace file %s not opened.\n\n", trace_file_name);
-    exit(0);
-  }
+	trace_fd = fopen(trace_file_name, "rb");
 
-  trace_init();
+	if (!trace_fd) {
+		fprintf(stdout, "\ntrace file %s not opened.\n\n", trace_file_name);
+		exit(0);
+	}
+	
+	trace_init();
 
- 
-      
 	//structs for stages	  
 	struct trace_item *IF1, *IF2, *ID, *EX, *MEM1, *MEM2, *WB;
 
-
-  while(1) {
+	while(1) {
 		size = trace_get_item(&IF1);
 
 		if (!size) {       /* no more instructions (trace_items) to simulate */
-		  printf("+ Simulation terminates at cycle : %u\n", cycle_number);
-		  break;
+			printf("+ Simulation terminates at cycle : %u\n", cycle_number);
+			break;
 		}
 		else{    	/* parse the next instruction to simulate */
 
-
-		  cycle_number++;
-		  t_type = IF1->type;
-		  t_sReg_a = IF1->sReg_a;
-		  t_sReg_b = IF1->sReg_b;
-		  t_dReg = IF1->dReg;
-		  t_PC = IF1->PC;
-		  t_Addr = IF1->Addr;
+			cycle_number++;
+			t_type = IF1->type;
+			t_sReg_a = IF1->sReg_a;
+			t_sReg_b = IF1->sReg_b;
+			t_dReg = IF1->dReg;
+			t_PC = IF1->PC;
+			t_Addr = IF1->Addr;
 
 		}  
 
@@ -175,14 +167,12 @@ int main(int argc, char **argv)
 			if (trace_view_on) { 
 				trace_viewer(WB, cycle_number);      
 			}
-
 			WB = MEM2;
 			MEM2 = MEM1;
 			MEM1 = EX;
 			EX->type = 0;
 			cycle_number++;
 		}
-
 
 		//This is check for hazard 2)b)
 		if (is_hazardTwo(EX,MEM1, MEM2, ID)) {
@@ -268,12 +258,9 @@ int main(int argc, char **argv)
 		  ID = IF2;
 		  IF2 = IF1;
 	}
-  trace_uninit();
-
-  exit(0);
+	trace_uninit();
+	exit(0);
 }
-
-
 
 //The check for data hazard 2)a)
 int is_hazard(struct trace_item *EX,struct trace_item *MEM1,struct trace_item *ID) {
