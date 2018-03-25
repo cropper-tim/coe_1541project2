@@ -146,6 +146,10 @@ int main(int argc, char **argv){
 
 		if (!size) {/* no more instructions (trace_items) to simulate */
 			printf("+ Simulation terminates at cycle : %u\n", cycle_number);
+			printf("L1 Data cache:		[%u] accesses, [%u] hits, [%u] misses, [%u] miss rate\n", D_a, D_a-D_m, D_m, D_m/D_a);
+			printf("L1 Instruction cache:   [%u] accesses, [%u] hits, [%u] misses, [%u] miss rate\n", I_a, I_a-I_m, I_m, I_m/I_a);
+			printf("L2 cache:               [%u] accesses, [%u] hits, [%u] misses, [%u] miss rate\n", L2_a, L2_a-L2_m, L2_m, L2_m/L2_a);
+
 			break;
 		}
 		else{/* parse the next instruction to simulate */
@@ -161,6 +165,12 @@ int main(int argc, char **argv){
 		
 		//read from instruction cache
 		cycle_number += cache_access(I_cache, IF1->Addr, 0);
+		if(MEM1->type == ti_STORE){
+			cycle_number += cache_access(D_cache, MEM1->Addr, 1);
+		}
+		if(MEM2->type == ti_LOAD){
+			cycle_number += cache_access(D_cache, MEM2->Addr, 0);	
+		}
 
 		//data hazard 
 		//check for hazard 2)a)
@@ -256,7 +266,115 @@ int main(int argc, char **argv){
 		  EX = ID;
 		  ID = IF2;
 		  IF2 = IF1;
-	}
+		}
+		int j  = 6;
+		int i;
+		for (i = 0; i < j; i++) {
+		cycle_number++;
+		IF1->type = ti_NOP;
+			//data hazard 
+			//check for hazard 2)a)
+			if (is_hazard(EX,MEM1,ID)) {
+				if (trace_view_on) { 
+					trace_viewer(WB, cycle_number);      
+				}
+				WB = MEM2;
+				MEM2 = MEM1;
+				MEM1 = EX;
+				EX->type = ti_NOP;
+				j++;
+				cycle_number++;
+			}
+			
+			//This is check for hazard 2)b)
+			if (is_hazardTwo(EX,MEM1, MEM2, ID)) {
+				if (trace_view_on) { 
+					trace_viewer(WB, cycle_number);      
+				}
+				WB = MEM2;
+				MEM2->type = ti_NOP;
+				j++;
+				cycle_number++;
+			}
+
+			//This is check for structural hazard
+			if (is_structuralHazard(WB,ID))
+			{
+				if (trace_view_on && WB != NULL)
+				{
+					trace_viewer(WB,cycle_number);
+				}
+				WB=MEM2;
+				MEM2=MEM1;
+				MEM1=EX;
+				EX->type = ti_NOP;
+				j++;
+				cycle_number++;
+			}
+
+			//squash
+			if (IF1->type == ti_BRANCH) {
+				branch_IF1 = getDecision(IF1, prediction_method);
+			}
+
+			//move the decision forward in the pipeline
+			branch_EX = branch_ID;
+			branch_ID = branch_IF2;
+			branch_IF2 = branch_IF1;
+
+			//check to see if branch decision was correct
+			if (EX != NULL && EX->type == ti_BRANCH) {
+				if (squash(branch_EX, EX, ID, prediction_method)) {
+					if (trace_view_on) {
+						printf("[cycle %d] squash\n",cycle_number);
+					}
+					cycle_number++;
+					j++;
+					if (trace_view_on) {
+						printf("[cycle %d] squash\n",cycle_number);
+					}
+					cycle_number++;
+					j++;
+					if (trace_view_on) {
+						printf("[cycle %d] squash\n",cycle_number);
+					}
+					cycle_number++;
+					j++;
+				} 
+			}
+
+			//If jump instruction squash previous 3
+			if (EX != NULL && (EX->type == ti_JTYPE || EX->type == ti_JRTYPE)) {
+				if (trace_view_on) {
+					printf("[cycle %d] squash\n",cycle_number);
+				}
+				cycle_number++;
+				j++;
+				if (trace_view_on) {
+					printf("[cycle %d] squash\n",cycle_number);
+				}
+				cycle_number++;
+				j++;
+				if (trace_view_on) {
+					printf("[cycle %d] squash\n",cycle_number);
+				}
+				cycle_number++;
+				j++;
+			}
+
+			  //print the WB
+			  if (trace_view_on && WB != NULL) { 
+			   trace_viewer(WB, cycle_number);      
+			  }
+
+			  //advance the pipeline
+			  WB = MEM2;
+			  MEM2 = MEM1;
+			  MEM1 = EX;
+			  EX = ID;
+			  ID = IF2;
+			  IF2 = IF1;
+		} 
 	trace_uninit();
 	exit(0);
 }
