@@ -19,6 +19,7 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include "CPU.h" 
+#include "cache.h"
 
 //This is the paramter to change the size of the prediction table
 #define prediction_table_size 64 
@@ -76,17 +77,26 @@ int main(int argc, char **argv)
   	trace_view_on = atoi(argv[3]);
   }
   
+	//to hold cache ID variables
+  unsigned int I_Size = 0;
+  unsigned int I_Associativity = 0;
+  unsigned int D_Size = 0;
+  unsigned int D_Associativity = 0;
+  unsigned int L2_Size = 0;
+  unsigned int L2_Associativity = 0;
+  unsigned int Cache_Block_size = 0;
+  unsigned int L2_Access_Time = 0;
+  unsigned int Mem_Access_Time = 0;
+	
+	// to keep cache statistics
+	unsigned int I_accesses = 0;
+	unsigned int I_misses = 0;
+	unsigned int D_read_accesses = 0;
+	unsigned int D_read_misses = 0;
+	unsigned int D_write_accesses = 0; 
+	unsigned int D_write_misses = 0;
+	
   FILE* file = fopen ("cache_config.txt", "r");
-  unsigned int I_Size;
-  unsigned int I_Associativity;
-  unsigned int D_Size;
-  unsigned int D_Associativity;
-  unsigned int L2_Size;
-  unsigned int L2_Associativity;
-  unsigned int Cache_Block_size;
-  unsigned int L2_Access_Time;
-  unsigned int Mem_Access_Time;
-
   while (!feof (file))
     {  
       fscanf (file, "%d", &I_Size);      
@@ -100,11 +110,23 @@ int main(int argc, char **argv)
       fscanf (file, "%d", &Mem_Access_Time);      
     }
   fclose (file);
+	
+	if (I_Size == 0){
+		//perfect cache, miss penalty = 0;
+	}
+	if (D_Size == 0){
+		//perfect cache, miss penalty = 0;
+	}
   
+	if(l2_Size != 0){
+	  struct cache_t *L2_Cache;
+		L2_cache = cache_create(L2_Size, Cache_Block_Size, L2_Associativity, Mem_Access_Time);
+	}else{
+		L2_Access_Time = Mem_Access_Time;
+	}
   struct cache_t *I_cache, *D_cache;
-  I_cache = cache_create(I_Size, I_Associativity, Cache_Block_Size);
-  D_cache = cache_create(D_Size, D_Associativity, Cache_Block_Size);
-  L2_cache = cache_create(L2_Size, L2_Associativity, Cache_Block_Size);
+  I_cache = cache_create(I_Size, Cache_Block_Size, I_Associativity, L2_Access_Time);
+  D_cache = cache_create(D_Size, Cache_Block_Size, D_Associativity, L2_Access_Time);
   
   
   
