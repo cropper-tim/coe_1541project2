@@ -25,7 +25,7 @@
 void trace_viewer(struct trace_item *, int); 
 
 //Prototypes
-unsigned int getBits8to3(unsigned int);
+unsigned int getBitsFrom_To(unsigned, unsigned, unsigned);
 int is_hazard(struct trace_item *,struct trace_item *,struct trace_item *);
 int is_hazardTwo(struct trace_item *,struct trace_item *,struct trace_item *,struct trace_item *);
 int is_structuralHazard(struct trace_item *,struct trace_item *);
@@ -144,12 +144,11 @@ int main(int argc, char **argv){
 	while(1) {
 		size = trace_get_item(&IF1);
 
-		if (!size) {       /* no more instructions (trace_items) to simulate */
+		if (!size) {/* no more instructions (trace_items) to simulate */
 			printf("+ Simulation terminates at cycle : %u\n", cycle_number);
 			break;
 		}
-		else{    	/* parse the next instruction to simulate */
-
+		else{/* parse the next instruction to simulate */
 			cycle_number++;
 			t_type = IF1->type;
 			t_sReg_a = IF1->sReg_a;
@@ -158,12 +157,13 @@ int main(int argc, char **argv){
 			t_PC = IF1->PC;
 			t_Addr = IF1->Addr;
 
-		}  
+		} 
+		
+		
 
 		//data hazard 
 		//check for hazard 2)a)
 		if (is_hazard(EX,MEM1,ID)) {
-
 			if (trace_view_on) { 
 				trace_viewer(WB, cycle_number);      
 			}
@@ -187,10 +187,8 @@ int main(int argc, char **argv){
 
 
 		//This is check for structural hazard
-		if (is_structuralHazard(WB,ID))
-		{
-			if (trace_view_on && WB != NULL)
-			{
+		if (is_structuralHazard(WB,ID)){
+			if (trace_view_on && WB != NULL){
 				trace_viewer(WB,cycle_number);
 			}
 			WB=MEM2;
@@ -348,14 +346,18 @@ unsigned char getDecision(struct trace_item *IF1,  int pm) {
     return result;
 }
     
-//return bits 8 to 3 of an address
-unsigned int getBits8to3(unsigned int addr){
+//return bits From to To of an address
+unsigned int getBitsFrom_To(unsigned addr, unsigned from, unsigned to){
+	if (to > from){
+		printf("\nUnable to retreive bits %d to %d, bits must be entered in deacreasing value.\n", from, to);
+		exit(0);
+	}
 	unsigned int r = 0;
 	unsigned int i;
-	for (i = 3; i <= 8; i++){
+	for (i = to; i <= from; i++){
 		r |= 1 << i;
 	}
-	return (addr & r)>>3;
+	return (addr & r)>>to;
 }
     
 //squash branch instruction
